@@ -1,3 +1,9 @@
+export interface ApiResponse {
+  statusCode: number;
+  body: Record<string, unknown>;
+  timestamp: string;
+}
+
 export interface PipelineJobData {
   id: string;
   batchId: string;
@@ -6,6 +12,8 @@ export interface PipelineJobData {
     method: 'GET' | 'POST';
     body?: Record<string, unknown>;
     authToken?: string;
+    response?: ApiResponse;
+    error?: string;
   };
   attempt: number;
   maxAttempts: number;
