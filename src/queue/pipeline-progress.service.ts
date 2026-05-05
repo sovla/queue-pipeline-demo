@@ -1,3 +1,10 @@
+/**
+ * Batch Progress Tracker (In-Memory)
+ *
+ * ⚠️ Demo Limitation: Uses in-memory Map. Lost on process restart.
+ * Production: Replace with Redis HSET for durability across restarts.
+ * Example: await redis.hset(`batch:${batchId}`, 'completed', String(count));
+ */
 import { Injectable, Logger } from '@nestjs/common';
 import { BatchProgress } from '../types/job.types';
 

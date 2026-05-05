@@ -18,7 +18,7 @@ export class DeadLetterProcessor extends WorkerHost {
 
   async process(job: Job<PipelineJobData>): Promise<void> {
     const { id, batchId, payload, maxAttempts } = job.data;
-    const error = (payload as any).error || 'Unknown error';
+    const error = payload.error ?? 'Unknown error';
 
     this.logger.error(
       `[DeadLetter] Job ${id} permanently failed after ${maxAttempts} attempts: ${error}`,

@@ -1,15 +1,13 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  // Graceful shutdown: 컨테이너 오케스트레이션 대응
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableShutdownHooks();
-
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`Pipeline demo running on http://localhost:${port}`);
+  new Logger('Bootstrap').log(`Pipeline running on http://localhost:${port}`);
 }
-
 bootstrap();

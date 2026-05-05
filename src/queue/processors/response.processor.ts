@@ -14,7 +14,7 @@ export class ResponseProcessor extends WorkerHost {
 
   async process(job: Job<PipelineJobData>): Promise<void> {
     const { id, batchId, payload } = job.data;
-    const response = (payload as any).response;
+    const response = payload.response;
 
     if (!response || response.statusCode !== 200) {
       this.logger.warn(`[Response] Job ${id} — invalid response structure`);

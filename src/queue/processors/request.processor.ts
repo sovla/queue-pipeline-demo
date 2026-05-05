@@ -1,7 +1,6 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
 import { PipelineJobData, QUEUE_NAMES, PIPELINE_CONFIG } from '../../types/job.types';
 import { RateLimiter } from '../guards/rate-limiter';
 import { CircuitBreaker } from '../guards/circuit-breaker';
@@ -9,15 +8,13 @@ import { CircuitBreaker } from '../guards/circuit-breaker';
 @Processor(QUEUE_NAMES.REQUEST)
 export class RequestProcessor extends WorkerHost {
   private readonly logger = new Logger(RequestProcessor.name);
-  private readonly rateLimiter = new RateLimiter(PIPELINE_CONFIG.RATE_LIMIT_TPS);
-  private readonly circuitBreaker = new CircuitBreaker(
-    PIPELINE_CONFIG.CIRCUIT_BREAKER_THRESHOLD,
-    PIPELINE_CONFIG.CIRCUIT_BREAKER_RESET_MS,
-  );
 
   constructor(
+    @InjectQueue(QUEUE_NAMES.REQUEST) private readonly requestQueue: Queue,
     @InjectQueue(QUEUE_NAMES.RESPONSE) private readonly responseQueue: Queue,
     @InjectQueue(QUEUE_NAMES.DEAD_LETTER) private readonly deadLetterQueue: Queue,
+    private readonly rateLimiter: RateLimiter,
+    private readonly circuitBreaker: CircuitBreaker,
   ) {
     super();
   }
@@ -65,11 +62,7 @@ export class RequestProcessor extends WorkerHost {
     }
   }
 
-  private get requestQueue(): Queue {
-    return (this as any).queue;
-  }
-
-  private async callExternalApi(jobData: PipelineJobData): Promise<unknown> {
+  private async callExternalApi(jobData: PipelineJobData): Promise<{ statusCode: number; body: Record<string, unknown>; timestamp: string }> {
     const { payload } = jobData;
 
     // Mock: 실제로는 axios/fetch로 외부 정부 API 호출
