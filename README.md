@@ -27,6 +27,55 @@
                                      └──────────┘
 ```
 
+## 인프라 구성
+
+런타임에서 각 컴포넌트가 어떻게 연결되는지를 나타냅니다. 큐는 Redis에 적재되고,
+프로세서가 이를 소비하며 단계 사이를 이동합니다. 복원력 가드(Rate Limiter·Circuit
+Breaker)는 외부 API 호출 직전에 개입합니다.
+
+```mermaid
+flowchart LR
+    Client["클라이언트<br/>POST /pipeline/trigger"]
+
+    subgraph App["NestJS 애플리케이션 · Node 런타임"]
+        direction TB
+        Ctrl["Pipeline Controller<br/>+ Progress Service"]
+        subgraph Workers["단계별 프로세서 · BullMQ Worker"]
+            direction LR
+            F["Filter"] --> A["Auth"] --> R["Request"] --> Rsp["Response"]
+            R -. "재시도 3회 초과" .-> D["Dead Letter"]
+        end
+        subgraph Guards["복원력 가드 · in-memory"]
+            RL["Rate Limiter<br/>Token Bucket · 30 TPS"]
+            CB["Circuit Breaker<br/>연속 5회 실패 → 60s 차단"]
+        end
+    end
+
+    subgraph RedisBox["Redis"]
+        Q[("BullMQ Queues<br/>filter · auth · request<br/>response · dead-letter")]
+    end
+
+    Ext["외부 정부 API<br/>불안정 · 약 30% 실패"]
+    Noti["Notification<br/>Webhook 알림"]
+
+    Client --> Ctrl
+    Ctrl ==>|배치 적재| Q
+    Q <==>|소비 / 다음 단계 적재| Workers
+    R --> RL
+    R --> CB
+    R ==>|HTTP 호출| Ext
+    Ext -. "타임아웃 / SSL 오류" .-> R
+    D --> Noti
+```
+
+| 컴포넌트 | 역할 | 비고 |
+|----------|------|------|
+| NestJS App | 컨트롤러 + 프로세서 + 가드 호스팅 | 수평 확장 시 Worker 인스턴스 추가 |
+| Redis | 큐 백엔드 (durability) | 서버 재시작해도 작업 유지 |
+| Rate Limiter / Circuit Breaker | 외부 API 보호 | 현재 in-memory, 다중 인스턴스 시 Redis 공유 필요 |
+| 외부 정부 API | 처리 대상 | 타임아웃·SSL·30% 실패 시뮬레이션 |
+| Notification | Dead Letter 알림 | Webhook |
+
 ## 핵심 설계 결정
 
 ### 1. 왜 큐인가 (for-loop 재시도 대신)
