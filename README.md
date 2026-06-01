@@ -90,23 +90,26 @@ curl -X POST http://localhost:3000/pipeline/trigger \
 src/
 ├── app.module.ts
 ├── main.ts
-├── pipeline/
+├── queue/
 │   ├── pipeline.module.ts
-│   ├── pipeline.controller.ts      # 트리거 API
-│   ├── pipeline.service.ts         # 배치 생성 + 진행률
+│   ├── pipeline.controller.ts          # 트리거 API
+│   ├── pipeline.service.ts             # 배치 생성
+│   ├── pipeline-progress.service.ts    # 진행률 추적
+│   ├── dto/
+│   │   └── trigger-pipeline.dto.ts     # 입력 검증 DTO
 │   ├── processors/
-│   │   ├── filter.processor.ts     # 입력 검증 + 필터링
-│   │   ├── auth.processor.ts       # 토큰 획득 (캐시 + 갱신)
-│   │   ├── request.processor.ts    # 외부 API 호출
-│   │   ├── response.processor.ts   # 응답 파싱 + 정규화
+│   │   ├── filter.processor.ts         # 입력 검증 + 필터링
+│   │   ├── auth.processor.ts           # 토큰 획득 (캐시 + 갱신)
+│   │   ├── request.processor.ts        # 외부 API 호출
+│   │   ├── response.processor.ts       # 응답 파싱 + 정규화
 │   │   └── dead-letter.processor.ts
-│   ├── guards/
-│   │   ├── rate-limiter.ts         # Token Bucket (30 TPS)
-│   │   └── circuit-breaker.ts      # 연속 실패 시 차단
-│   └── types/
-│       └── pipeline.types.ts
+│   └── guards/
+│       ├── rate-limiter.ts             # Token Bucket (30 TPS)
+│       └── circuit-breaker.ts          # 연속 실패 시 차단
+├── types/
+│   └── job.types.ts                    # 큐 이름 + Job 데이터 타입
 └── notification/
-    └── notification.service.ts     # 실패 알림 (Webhook)
+    └── notification.service.ts         # 실패 알림 (Webhook)
 ```
 
 ## 프로덕션 적용 결과
